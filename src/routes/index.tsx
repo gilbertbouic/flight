@@ -10,7 +10,7 @@ export const Route = createFileRoute("/")({ component: Home });
 
 const ISLETS = chartIslands().length;
 
-function Home() {
+export function Home() {
   const [mounted, setMounted] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [night, setNight] = useState(false);
