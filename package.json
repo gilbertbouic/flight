@@ -14,7 +14,7 @@
   "scripts": {
     "dev": "node scripts/with-app-env.mjs vite dev --host 0.0.0.0 --port 8080",
     "build": "node scripts/with-app-env.mjs vite build && npm run db:migrate",
-    "build:browser": "vite build --config vite.browser.config.ts && mv docs/browser.html docs/index.html",
+    "build:browser": "vite build --config vite.browser.config.ts && mv docs/browser.html index.html && rm -rf assets && mv docs/assets assets && cp -f docs/favicon.svg docs/og.jpg docs/x-banner.jpg docs/.nojekyll . && rm -rf docs",
     "db:migrate": "node scripts/migrate.mjs",
     "build:dev": "node scripts/with-app-env.mjs vite build --mode development",
     "preview": "node scripts/with-app-env.mjs vite preview",
