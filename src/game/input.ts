@@ -15,14 +15,20 @@ export const inputState = {
 };
 
 export const hudBus = {
-  alt: "980",
-  agl: "980",
+  alt: "720",
+  agl: "720",
   spd: "0",
-  hdg: "000",
-  place: "Indian Ocean",
+  hdg: "180",
+  place: "Belle Mare",
   ticks: 0,
   warn: false,
   tick: 0,
+  score: "0",
+  best: "0",
+  deck: "1 / 5",
+  call: "FIND THE RING",
+  locks: 0,
+  done: false,
 };
 
 export const renderState = { night: 0 };

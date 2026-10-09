@@ -1,13 +1,12 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, type MutableRefObject } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
-import { buildTerrain, describePlace, type Terrain } from "@/game/terrain";
+import { buildTerrain, type Terrain } from "@/game/terrain";
 import { forwardOf, headingDeg, stepSim } from "@/game/sim";
 import { heldCodes, hudBus, inputState, renderState, simState } from "@/game/input";
+import { DECKS, GRADES, runState, stepRun } from "@/game/aperture";
 
-const DAY_FOG = new THREE.Color("#9ec4d4");
 const NIGHT_FOG = new THREE.Color("#10182c");
-const DAY_SKY = new THREE.Color("#d7eef6");
 const NIGHT_SKY = new THREE.Color("#243056");
 const DAY_GROUND = new THREE.Color("#3d7a45");
 const NIGHT_GROUND = new THREE.Color("#121810");
@@ -133,7 +132,9 @@ function Aircraft() {
     behind.set(s.x - fx, s.y - fy, s.z - fz);
     g.up.set(0, 1, 0);
     g.lookAt(behind);
-    g.rotateZ(s.roll);
+    // Mesh nose is +Z. A half-turn puts that nose on the leading end, away from the camera.
+    g.rotateY(Math.PI);
+    g.rotateZ(-s.roll);
     const d = Math.min(dt, 0.05);
     if (prop.current) prop.current.rotation.z += (9 + Math.abs(s.speed) * 0.45) * d;
   });
@@ -185,6 +186,68 @@ function Aircraft() {
           <meshLambertMaterial color="#2a241c" flatShading />
         </mesh>
       </group>
+    </group>
+  );
+}
+
+function Decks({ sample }: { sample: (x: number, z: number) => number }) {
+  const ringGeo = useMemo(() => new THREE.RingGeometry(0.8, 1, 6), []);
+  const beam = useRef<THREE.Mesh>(null);
+  const mats = useMemo(
+    () =>
+      DECKS.map(
+        () =>
+          new THREE.MeshBasicMaterial({
+            color: "#46e0ff",
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0.45,
+            depthWrite: false,
+          }),
+      ),
+    [],
+  );
+  const placed = useMemo(
+    () => DECKS.map((deck) => ({ ...deck, y: Math.max(sample(deck.x, deck.z), 0) + 3 })),
+    [sample],
+  );
+
+  useFrame(({ clock }) => {
+    const pulse = 0.55 + Math.sin(clock.elapsedTime * 3.2) * 0.45;
+    mats.forEach((mat, i) => {
+      const live = i === runState.locks && !runState.done;
+      const done = i < runState.locks || runState.done;
+      mat.color.set(live ? "#ff4f6d" : done ? "#f4f1ea" : "#46e0ff");
+      mat.opacity = live ? 0.95 : done ? 0.7 : 0.28;
+    });
+    const mesh = beam.current;
+    const deck = placed[runState.locks];
+    if (!mesh) return;
+    if (!deck || runState.done) {
+      mesh.visible = false;
+      return;
+    }
+    mesh.visible = true;
+    mesh.position.set(deck.x, deck.y + 420, deck.z);
+    mesh.scale.set(1, 640 + pulse * 280, 1);
+  });
+
+  return (
+    <group>
+      {placed.map((deck, i) => (
+        <mesh
+          key={deck.name}
+          geometry={ringGeo}
+          material={mats[i]}
+          position={[deck.x, deck.y, deck.z]}
+          rotation={[-Math.PI / 2, 0, 0]}
+          scale={[deck.r, deck.r, deck.r]}
+        />
+      ))}
+      <mesh ref={beam} position={[0, 400, 0]}>
+        <cylinderGeometry args={[9, 9, 1, 5]} />
+        <meshBasicMaterial color="#ff4f6d" transparent opacity={0.8} depthWrite={false} />
+      </mesh>
     </group>
   );
 }
@@ -242,6 +305,21 @@ function World({
   const nightMix = useRef(0);
   const camReady = useRef(false);
   const hudAcc = useRef(0);
+  const gradeMix = useRef(0);
+  const gradeColors = useMemo(
+    () =>
+      GRADES.map((g) => ({
+        fog: new THREE.Color(g.fog),
+        top: new THREE.Color(g.top),
+        hor: new THREE.Color(g.hor),
+        sun: new THREE.Color(g.sun),
+      })),
+    [],
+  );
+  const dayFog = useMemo(() => new THREE.Color(), []);
+  const dayTop = useMemo(() => new THREE.Color(), []);
+  const dayHor = useMemo(() => new THREE.Color(), []);
+  const daySun = useMemo(() => new THREE.Color(), []);
   const treeGeo = useMemo(() => new THREE.ConeGeometry(1, 1, 5), []);
   const treeMat = useMemo(() => new THREE.MeshLambertMaterial({ color: "#1b6a38", flatShading: true }), []);
   const palmMat = useMemo(() => new THREE.MeshLambertMaterial({ color: "#3e8f45", flatShading: true }), []);
@@ -297,6 +375,7 @@ function World({
         d,
         terrain.sample,
       );
+      stepRun(runState, simState, d, terrain.sample);
     }
     inputState.lookX = 0;
     inputState.lookY = 0;
@@ -316,17 +395,35 @@ function World({
     camera.lookAt(lookAt);
 
     const n = nightMix.current;
+    const gTarget = Math.min(runState.locks, GRADES.length - 1);
+    gradeMix.current += (gTarget - gradeMix.current) * Math.min(1, d * 0.65);
+    const i0 = Math.floor(gradeMix.current);
+    const i1 = Math.min(GRADES.length - 1, i0 + 1);
+    const u = gradeMix.current - i0;
+    const a = gradeColors[i0]!;
+    const b = gradeColors[i1]!;
+    dayFog.copy(a.fog).lerp(b.fog, u);
+    dayTop.copy(a.top).lerp(b.top, u);
+    dayHor.copy(a.hor).lerp(b.hor, u);
+    daySun.copy(a.sun).lerp(b.sun, u);
     if (hemi.current) {
       hemi.current.intensity = 1.05 * (1 - n) + 0.22 * n;
-      hemi.current.color.copy(DAY_SKY).lerp(NIGHT_SKY, n);
+      hemi.current.color.copy(dayHor).lerp(NIGHT_SKY, n);
       hemi.current.groundColor.copy(DAY_GROUND).lerp(NIGHT_GROUND, n);
     }
-    if (sun.current) sun.current.intensity = 0.95 * (1 - n);
+    if (sun.current) {
+      sun.current.intensity = 0.95 * (1 - n);
+      sun.current.color.copy(daySun);
+    }
     if (fill.current) fill.current.intensity = 0.38 * (1 - n);
     if (moon.current) moon.current.intensity = 0.62 * n;
-    if (sky.current) sky.current.uniforms.uNight!.value = n;
+    if (sky.current) {
+      sky.current.uniforms.uNight!.value = n;
+      (sky.current.uniforms.uTopDay!.value as THREE.Color).copy(dayTop);
+      (sky.current.uniforms.uHorDay!.value as THREE.Color).copy(dayHor);
+    }
     if (stars.current) stars.current.opacity = n;
-    if (scene.fog instanceof THREE.Fog) scene.fog.color.copy(DAY_FOG).lerp(NIGHT_FOG, n);
+    if (scene.fog instanceof THREE.Fog) scene.fog.color.copy(dayFog).lerp(NIGHT_FOG, n);
 
     hudAcc.current += d;
     if (hudAcc.current > 0.12) {
@@ -337,7 +434,13 @@ function World({
       hudBus.agl = Math.round(agl).toLocaleString("en-US");
       hudBus.spd = Math.round(Math.abs(s.speed) * 3.6).toString();
       hudBus.hdg = Math.round(headingDeg(s.yaw)).toString().padStart(3, "0");
-      hudBus.place = describePlace(s.x, s.z, ground);
+      hudBus.place = runState.call;
+      hudBus.score = runState.score.toLocaleString("en-US");
+      hudBus.best = runState.best.toLocaleString("en-US");
+      hudBus.deck = `${Math.min(runState.locks + 1, DECKS.length)} / ${DECKS.length}`;
+      hudBus.call = runState.call;
+      hudBus.locks = runState.locks;
+      hudBus.done = runState.done;
       hudBus.warn = agl < 36 && ground > -2;
       hudBus.ticks = Math.round(Math.min(1, Math.abs(s.speed) / 120) * 8);
       hudBus.tick += 1;
@@ -394,6 +497,7 @@ function World({
       <ScatterMesh items={terrain.palms} geometry={treeGeo} material={palmMat} groundOffset />
       <Towns terrain={terrain} geometry={townGeo} material={townMat} />
       <Clouds />
+      <Decks sample={terrain.sample} />
       <mesh position={[terrain.airport.x, terrain.airport.y, terrain.airport.z]} rotation={[0, terrain.airport.rot, 0]}>
         <boxGeometry args={[2400, 2.4, 70]} />
         <meshLambertMaterial color="#2c3338" flatShading />

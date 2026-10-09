@@ -1,25 +1,25 @@
-@import "@fontsource/fraunces/latin-500.css";
-@import "@fontsource/fraunces/latin-600.css";
+@import "@fontsource/syne/latin-700.css";
+@import "@fontsource/syne/latin-800.css";
 @import "@fontsource/ibm-plex-mono/latin-400.css";
 @import "@fontsource/ibm-plex-mono/latin-500.css";
 @import "tailwindcss";
 
 @theme {
-  --font-display: "Fraunces", "Iowan Old Style", Palatino, Georgia, serif;
+  --font-display: "Syne", "Avenir Next", Futura, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
-  --color-bg: #071510;
-  --color-surface: #10241c;
-  --color-fg: #e7f2ea;
-  --color-muted: #8eaea4;
-  --color-primary: #1aa88a;
-  --color-accent: #e4b15a;
-  --color-sand: #efd3a0;
-  --color-border: #1e3a30;
-  --color-lagoon: #7ddec8;
-  --color-cane: #4f9d3a;
-  --color-forest: #145238;
-  --color-peak: #e6e1d6;
-  --radius: 0.75rem;
+  --color-bg: #07060d;
+  --color-surface: #14121c;
+  --color-fg: #f6f3ee;
+  --color-muted: #9a95a8;
+  --color-primary: #46e0ff;
+  --color-accent: #ff4f6d;
+  --color-sand: #f6f3ee;
+  --color-border: #2c2838;
+  --color-lagoon: #46e0ff;
+  --color-cane: #ff4f6d;
+  --color-forest: #c4b6ff;
+  --color-peak: #ffc27a;
+  --radius: 2px;
 }
 
 @layer base {
@@ -42,6 +42,11 @@
     outline-offset: 2px;
   }
 }
+
+.flight-root[data-grade="1"] { --color-accent: #ff8aa3; --color-surface: #1a1016; }
+.flight-root[data-grade="2"] { --color-accent: #5dffe4; --color-surface: #071816; }
+.flight-root[data-grade="3"] { --color-accent: #ffc27a; --color-surface: #1a120c; }
+.flight-root[data-grade="4"] { --color-accent: #c4b6ff; --color-surface: #12101c; }
 
 .flight-root {
   position: fixed;

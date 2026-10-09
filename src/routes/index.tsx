@@ -3,12 +3,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Grid3x3, Moon, Sun } from "lucide-react";
 import { FlightCanvas } from "@/game/FlightCanvas";
 import { hudBus, inputState, installProbe, simState } from "@/game/input";
+import { resetRun } from "@/game/aperture";
 import { resetSim } from "@/game/sim";
-import { chartIslands } from "@/game/terrain";
 
 export const Route = createFileRoute("/")({ component: Home });
-
-const ISLETS = chartIslands().length;
 
 export function Home() {
   const [mounted, setMounted] = useState(false);
@@ -16,6 +14,8 @@ export function Home() {
   const [night, setNight] = useState(false);
   const [wire, setWire] = useState(false);
   const [locked, setLocked] = useState(false);
+  const [cleared, setCleared] = useState(false);
+  const [grade, setGrade] = useState(0);
   const nightRef = useRef(false);
   const wireRef = useRef(false);
   const altRef = useRef<HTMLElement>(null);
@@ -23,6 +23,8 @@ export function Home() {
   const spdRef = useRef<HTMLElement>(null);
   const hdgRef = useRef<HTMLSpanElement>(null);
   const placeRef = useRef<HTMLParagraphElement>(null);
+  const scoreRef = useRef<HTMLElement>(null);
+  const deckRef = useRef<HTMLParagraphElement>(null);
   const altCard = useRef<HTMLDivElement>(null);
   const ticksRef = useRef<HTMLDivElement>(null);
 
@@ -42,6 +44,9 @@ export function Home() {
         setWire(wireRef.current);
       } else if (e.code === "KeyR") {
         resetSim(simState);
+        resetRun();
+        setCleared(false);
+        setGrade(0);
       }
     };
     window.addEventListener("keydown", onKey);
@@ -63,7 +68,11 @@ export function Home() {
       if (aglRef.current) aglRef.current.textContent = `${hudBus.agl} m ground`;
       if (spdRef.current) spdRef.current.textContent = hudBus.spd;
       if (hdgRef.current) hdgRef.current.textContent = `${hudBus.hdg}°`;
-      if (placeRef.current) placeRef.current.textContent = hudBus.place;
+      if (placeRef.current) placeRef.current.textContent = hudBus.call;
+      if (scoreRef.current) scoreRef.current.textContent = hudBus.score;
+      if (deckRef.current) deckRef.current.textContent = hudBus.deck;
+      if (hudBus.locks !== grade) setGrade(hudBus.locks);
+      if (hudBus.done) setCleared(true);
       altCard.current?.setAttribute("data-warn", hudBus.warn ? "true" : "false");
       const marks = ticksRef.current?.children;
       if (marks) {
@@ -74,7 +83,7 @@ export function Home() {
     };
     frame = requestAnimationFrame(paint);
     return () => cancelAnimationFrame(frame);
-  }, [playing]);
+  }, [playing, grade]);
 
   function toggleNight() {
     nightRef.current = !nightRef.current;
@@ -86,25 +95,41 @@ export function Home() {
     setWire(wireRef.current);
   }
 
-  function start() {
-    inputState.playing = true;
+  function restart() {
+    resetSim(simState);
+    resetRun();
+    setCleared(false);
+    setGrade(0);
     inputState.lookX = 0;
     inputState.lookY = 0;
+  }
+
+  function start() {
+    restart();
+    inputState.playing = true;
     setPlaying(true);
     const canvas = document.querySelector("canvas");
     if (canvas && !window.matchMedia("(pointer: coarse)").matches) void canvas.requestPointerLock();
   }
 
   return (
-    <main className="flight-root">
+    <main className="flight-root" data-grade={String(grade)}>
       {mounted ? <FlightCanvas nightRef={nightRef} wireRef={wireRef} /> : null}
 
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute top-4 left-4 max-w-[16rem]">
-          <p className="font-display text-2xl leading-none text-fg">Mauritius</p>
-          <p ref={placeRef} className="kicker mt-1 text-accent">
-            {playing ? "Indian Ocean" : `${ISLETS} islets inside 20 km`}
+          <p className="font-display text-3xl leading-none tracking-tight text-fg">Aperture</p>
+          <p ref={deckRef} className="kicker mt-2">
+            {playing ? "1 / 5" : "Five decks"}
           </p>
+          <p ref={placeRef} className="kicker mt-1 text-accent">
+            {playing ? "Find the ring" : "Land to rewrite the light"}
+          </p>
+          {playing ? (
+            <b ref={scoreRef} className="mt-2 block font-mono text-3xl leading-none text-fg">
+              0
+            </b>
+          ) : null}
         </div>
 
         <div className="pointer-events-auto absolute top-4 right-4 flex gap-2">
@@ -143,18 +168,29 @@ export function Home() {
             </div>
             {!locked ? <p className="look-hint kicker pointer-events-none absolute top-16 left-4 text-sand">Click the view to look</p> : null}
             <TouchLayer />
+            {cleared ? (
+              <div className="pointer-events-auto absolute inset-0 flex items-center justify-center p-4">
+                <section className="panel start-card">
+                  <p className="kicker">Circuit closed</p>
+                  <h2 className="font-display mt-1 text-5xl leading-none text-fg">{hudBus.score}</h2>
+                  <p className="mt-3 text-sm text-muted">Five locks. Best {hudBus.best}.</p>
+                  <button type="button" className="hud-btn mt-5 w-full" data-on="true" onClick={restart}>
+                    Fly it again
+                  </button>
+                </section>
+              </div>
+            ) : null}
           </>
         ) : (
           <div className="pointer-events-auto absolute inset-0 flex items-end justify-center p-4 sm:items-center">
             <section className="panel start-card">
-              <p className="kicker">Survey flight</p>
-              <h1 className="font-display mt-1 text-4xl leading-none text-fg">Île Maurice</h1>
+              <p className="kicker">The other way around</p>
+              <h1 className="font-display mt-1 text-5xl leading-none tracking-tight text-fg">Aperture</h1>
               <p className="mt-3 text-sm leading-relaxed text-muted">
-                Low-poly Mauritius, lagoon shelf, and every named islet within 20 km — Flat Island north, Île aux Cerfs, the Grand Port chain, Bénitiers.
-                Color follows height. The ground stops the aircraft.
+                Five rings on the Mauritius coast. The nose leads away from you. Settle inside the live ring — slow, wings level — and the island changes light. Too fast, and the deck will not take you.
               </p>
               <button type="button" className="hud-btn mt-5 w-full" data-on="true" onClick={start}>
-                Start flight
+                Start circuit
               </button>
               <ul className="control-list mt-5">
                 <li>
@@ -192,16 +228,16 @@ export function Home() {
               </ul>
               <div className="swatches mt-5">
                 <span>
-                  <i className="swatch-lagoon" /> Lagoon
+                  <i className="swatch-lagoon" /> Steel
                 </span>
                 <span>
-                  <i className="swatch-cane" /> Cane
+                  <i className="swatch-cane" /> Dusk
                 </span>
                 <span>
-                  <i className="swatch-forest" /> Forest
+                  <i className="swatch-forest" /> Reef
                 </span>
                 <span>
-                  <i className="swatch-peak" /> Peak
+                  <i className="swatch-peak" /> Ember
                 </span>
               </div>
             </section>

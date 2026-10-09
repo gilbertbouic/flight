@@ -1,5 +1,7 @@
+import { approach } from "@/game/aperture";
+
 /**
- * Survey-craft flight.
+ * Aperture flight.
  *
  * Basis (three.js, +Y up): yaw 0 faces −Z (north). +yaw is CCW about +Y.
  *   forward = (−sin(yaw), sin(pitch), −cos(yaw))
@@ -32,16 +34,7 @@ const YAW_RATE = 1.25;
 const CLEARANCE = 14;
 
 export function createSim(): Sim {
-  // Far enough southwest that the island sits in the lagoon, not a wall of facets.
-  return {
-    x: -28_000,
-    y: 2_800,
-    z: 20_000,
-    yaw: Math.atan2(-0.93, 0.36),
-    pitch: -0.18,
-    roll: 0,
-    speed: 0,
-  };
+  return approach();
 }
 
 export function resetSim(s: Sim): void {
