@@ -367,14 +367,13 @@ const C_DEEP = hex("#0b3550");
 const C_OCEAN = hex("#0e5c6e");
 const C_REEF = hex("#149a96");
 const C_SHALLOW = hex("#7ddec8");
-const C_FOAM = hex("#f3efe2");
 const C_SAND = hex("#efd3a0");
 const C_SCRUB = hex("#b7c45a");
 const C_CANE = hex("#4f9d3a");
 const C_CANE2 = hex("#7cb342");
 const C_FOREST = hex("#1e7a45");
 const C_DEEPF = hex("#145238");
-const C_HIGH = hex("#6d7d52");
+const C_HIGH = hex("#4e7a3c");
 const C_ROCK = hex("#8d8478");
 const C_PEAK = hex("#e6e1d6");
 
@@ -383,30 +382,22 @@ function mix(a: RGB, b: RGB, t: number): RGB {
   return [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u];
 }
 
-function scale(a: RGB, k: number): RGB {
-  return [a[0] * k, a[1] * k, a[2] * k];
-}
-
 export function colorAt(h: number, slope: number, e: number, n: number, rock = false): RGB {
   let c: RGB;
-  if (h < -55) c = C_DEEP;
-  else if (h < -18) c = mix(C_DEEP, C_OCEAN, smooth(-55, -18, h));
-  else if (h < -6) c = mix(C_OCEAN, C_REEF, smooth(-18, -6, h));
-  else if (h < -0.5) c = mix(C_REEF, C_SHALLOW, smooth(-6, -0.5, h));
-  else if (h < 4) c = mix(C_FOAM, C_SAND, smooth(0.2, 4, h));
-  else if (h < 18) c = mix(C_SAND, C_SCRUB, smooth(6, 18, h));
-  else if (h < 90) c = mix(C_SCRUB, mix(C_CANE, C_CANE2, noise(e / 2200, n / 2200)), smooth(18, 70, h));
-  else if (h < 240) c = mix(C_CANE, C_FOREST, smooth(90, 240, h));
-  else if (h < 460) c = mix(C_FOREST, C_DEEPF, smooth(240, 460, h));
-  else if (h < 640) c = mix(C_HIGH, C_ROCK, smooth(460, 640, h));
-  else c = mix(C_ROCK, C_PEAK, smooth(640, 820, h));
+  if (h < -80) c = C_DEEP;
+  else if (h < -22) c = mix(C_DEEP, C_OCEAN, smooth(-80, -22, h));
+  else if (h < -8) c = mix(C_OCEAN, C_REEF, smooth(-22, -8, h));
+  else if (h < -1) c = mix(C_REEF, C_SHALLOW, smooth(-8, -1, h));
+  else if (h < 2.5) c = C_SAND;
+  else if (h < 14) c = mix(C_SAND, C_SCRUB, smooth(2.5, 14, h));
+  else if (h < 90) c = mix(C_CANE, C_CANE2, 0.25 + 0.75 * noise(e / 1800, n / 1800));
+  else if (h < 260) c = mix(C_CANE, C_FOREST, smooth(90, 240, h));
+  else if (h < 480) c = mix(C_FOREST, C_DEEPF, smooth(260, 480, h));
+  else if (h < 780) c = mix(C_DEEPF, C_HIGH, smooth(480, 760, h));
+  else c = mix(C_HIGH, C_PEAK, smooth(780, 980, h));
 
-  if (rock && h > 4) c = mix(c, h > 80 ? C_PEAK : C_ROCK, h > 40 ? 0.72 : 0.45);
-  if (h > 28 && slope > 0.28) c = mix(c, slope > 0.7 ? C_PEAK : C_ROCK, clamp((slope - 0.28) * 1.3, 0, 0.72));
-  if (h > 30) {
-    const m = Math.abs((h % 140) - 70);
-    if (m > 62) c = scale(c, 0.82);
-  }
+  if (h > 50 && slope > 0.62) c = mix(c, C_ROCK, clamp((slope - 0.62) * 1.8, 0, 0.55));
+  if (rock && h > 25) c = mix(c, h > 120 ? C_PEAK : C_ROCK, 0.4);
   return c;
 }
 

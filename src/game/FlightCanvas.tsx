@@ -5,14 +5,15 @@ import { buildTerrain, describePlace, type Terrain } from "@/game/terrain";
 import { forwardOf, headingDeg, stepSim } from "@/game/sim";
 import { heldCodes, hudBus, inputState, renderState, simState } from "@/game/input";
 
-const DAY_FOG = new THREE.Color("#c5ddd4");
+const DAY_FOG = new THREE.Color("#9ec4d4");
 const NIGHT_FOG = new THREE.Color("#10182c");
-const DAY_SKY = new THREE.Color("#d7ecff");
+const DAY_SKY = new THREE.Color("#d7eef6");
 const NIGHT_SKY = new THREE.Color("#243056");
-const DAY_GROUND = new THREE.Color("#6d8a52");
+const DAY_GROUND = new THREE.Color("#3d7a45");
 const NIGHT_GROUND = new THREE.Color("#121810");
-const SUN_COLOR = new THREE.Color("#fff1d4");
+const SUN_COLOR = new THREE.Color("#fff4dc");
 const MOON_COLOR = new THREE.Color("#9db4ff");
+const FILL_COLOR = new THREE.Color("#c5dff0");
 
 function makeTerrainObjects(terrain: Terrain) {
   const seg = terrain.segments;
@@ -44,7 +45,13 @@ function makeTerrainObjects(terrain: Terrain) {
   geo.setIndex(indices);
   geo.computeVertexNormals();
   geo.computeBoundingSphere();
-  const mat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+  const mat = new THREE.MeshLambertMaterial({
+    vertexColors: true,
+    flatShading: true,
+    polygonOffset: true,
+    polygonOffsetFactor: 1,
+    polygonOffsetUnits: 1,
+  });
   const wireGeo = new THREE.WireframeGeometry(geo);
   const wireMat = new THREE.LineBasicMaterial({
     color: 0xe4b15a,
@@ -133,39 +140,81 @@ function Aircraft() {
   return (
     <group ref={group}>
       <mesh rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.7, 0.95, 7.4, 6]} />
+        <cylinderGeometry args={[0.55, 0.85, 8.2, 6]} />
         <meshLambertMaterial color="#f4efe4" flatShading />
       </mesh>
-      <mesh position={[0, 0, 4.7]} rotation={[Math.PI / 2, 0, 0]}>
-        <coneGeometry args={[0.7, 1.8, 6]} />
+      <mesh position={[0, 0, 5.1]} rotation={[Math.PI / 2, 0, 0]}>
+        <coneGeometry args={[0.55, 1.6, 6]} />
         <meshLambertMaterial color="#e4b15a" flatShading />
       </mesh>
-      <mesh position={[0, 0.35, 0.2]}>
-        <boxGeometry args={[16.5, 0.22, 2.5]} />
+      <mesh position={[0, 0.28, 0.15]} rotation={[0, 0, 0.04]}>
+        <boxGeometry args={[15.2, 0.28, 2.2]} />
         <meshLambertMaterial color="#127868" flatShading />
       </mesh>
-      <mesh position={[0, 0.15, -3.45]}>
-        <boxGeometry args={[4.4, 0.14, 1.15]} />
+      <mesh position={[-7.4, 0.42, 0.15]} rotation={[0, 0, 0.35]}>
+        <boxGeometry args={[1.1, 0.16, 1.5]} />
         <meshLambertMaterial color="#127868" flatShading />
       </mesh>
-      <mesh position={[0, 1.05, -3.2]}>
-        <boxGeometry args={[0.16, 1.7, 1.35]} />
+      <mesh position={[7.4, 0.42, 0.15]} rotation={[0, 0, -0.35]}>
+        <boxGeometry args={[1.1, 0.16, 1.5]} />
+        <meshLambertMaterial color="#127868" flatShading />
+      </mesh>
+      <mesh position={[0, 0.22, -3.7]}>
+        <boxGeometry args={[4.2, 0.16, 1.05]} />
+        <meshLambertMaterial color="#127868" flatShading />
+      </mesh>
+      <mesh position={[0, 1.15, -3.55]}>
+        <boxGeometry args={[0.14, 1.9, 1.2]} />
         <meshLambertMaterial color="#f4efe4" flatShading />
       </mesh>
-      <mesh position={[0, 0.72, 0.4]}>
-        <boxGeometry args={[0.85, 0.55, 1.4]} />
+      <mesh position={[0, 0.62, 0.35]}>
+        <boxGeometry args={[0.7, 0.42, 1.5]} />
         <meshLambertMaterial color="#14343c" flatShading />
       </mesh>
-      <group ref={prop} position={[0, 0, 5.65]}>
+      <group ref={prop} position={[0, 0, 6.05]}>
         <mesh>
-          <boxGeometry args={[0.16, 3.3, 0.08]} />
+          <boxGeometry args={[0.12, 3.1, 0.06]} />
           <meshLambertMaterial color="#2a241c" flatShading />
         </mesh>
-        <mesh rotation={[0, 0, Math.PI / 2]}>
-          <boxGeometry args={[0.16, 3.3, 0.08]} />
+        <mesh rotation={[0, 0, Math.PI / 3]}>
+          <boxGeometry args={[0.12, 3.1, 0.06]} />
+          <meshLambertMaterial color="#2a241c" flatShading />
+        </mesh>
+        <mesh rotation={[0, 0, -Math.PI / 3]}>
+          <boxGeometry args={[0.12, 3.1, 0.06]} />
           <meshLambertMaterial color="#2a241c" flatShading />
         </mesh>
       </group>
+    </group>
+  );
+}
+
+function Clouds() {
+  const spots = useMemo(() => {
+    const list: { x: number; y: number; z: number; s: number }[] = [];
+    let seed = 19;
+    const rnd = () => {
+      seed = (seed * 16807) % 2147483647;
+      return (seed & 2147483647) / 2147483647;
+    };
+    for (let i = 0; i < 9; i++) {
+      list.push({
+        x: (rnd() - 0.5) * 64000,
+        y: 5200 + rnd() * 1400,
+        z: (rnd() - 0.5) * 64000,
+        s: 480 + rnd() * 520,
+      });
+    }
+    return list;
+  }, []);
+  return (
+    <group>
+      {spots.map((c, i) => (
+        <mesh key={i} position={[c.x, c.y, c.z]} scale={[c.s, c.s * 0.22, c.s * 0.55]}>
+          <icosahedronGeometry args={[1, 0]} />
+          <meshBasicMaterial color="#f7fbfc" />
+        </mesh>
+      ))}
     </group>
   );
 }
@@ -186,6 +235,7 @@ function World({
   const lookAt = useMemo(() => new THREE.Vector3(), []);
   const hemi = useRef<THREE.HemisphereLight>(null);
   const sun = useRef<THREE.DirectionalLight>(null);
+  const fill = useRef<THREE.DirectionalLight>(null);
   const moon = useRef<THREE.DirectionalLight>(null);
   const sky = useRef<THREE.ShaderMaterial>(null);
   const stars = useRef<THREE.PointsMaterial>(null);
@@ -267,11 +317,12 @@ function World({
 
     const n = nightMix.current;
     if (hemi.current) {
-      hemi.current.intensity = 0.78 * (1 - n) + 0.2 * n;
+      hemi.current.intensity = 1.05 * (1 - n) + 0.22 * n;
       hemi.current.color.copy(DAY_SKY).lerp(NIGHT_SKY, n);
       hemi.current.groundColor.copy(DAY_GROUND).lerp(NIGHT_GROUND, n);
     }
-    if (sun.current) sun.current.intensity = 1.32 * (1 - n);
+    if (sun.current) sun.current.intensity = 0.95 * (1 - n);
+    if (fill.current) fill.current.intensity = 0.38 * (1 - n);
     if (moon.current) moon.current.intensity = 0.62 * n;
     if (sky.current) sky.current.uniforms.uNight!.value = n;
     if (stars.current) stars.current.opacity = n;
@@ -295,10 +346,11 @@ function World({
 
   return (
     <>
-      <hemisphereLight ref={hemi} args={["#d7ecff", "#6d8a52", 0.78]} />
-      <directionalLight ref={sun} position={[-18000, 32000, -12000]} intensity={1.32} color={SUN_COLOR} />
+      <hemisphereLight ref={hemi} args={["#d7eef6", "#3d7a45", 1.05]} />
+      <directionalLight ref={sun} position={[-18000, 32000, -12000]} intensity={0.95} color={SUN_COLOR} />
+      <directionalLight ref={fill} position={[22000, 14000, 18000]} intensity={0.38} color={FILL_COLOR} />
       <directionalLight ref={moon} position={[14000, 22000, 16000]} intensity={0} color={MOON_COLOR} />
-      <fog attach="fog" args={["#c5ddd4", 28000, 100000]} />
+      <fog attach="fog" args={["#9ec4d4", 52000, 120000]} />
       <mesh frustumCulled={false} renderOrder={-2}>
         <sphereGeometry args={[100000, 20, 12]} />
         <shaderMaterial
@@ -307,8 +359,8 @@ function World({
           depthWrite={false}
           uniforms={{
             uNight: { value: 0 },
-            uTopDay: { value: new THREE.Color("#6eb7e0") },
-            uHorDay: { value: new THREE.Color("#f3e2c4") },
+            uTopDay: { value: new THREE.Color("#2f86c4") },
+            uHorDay: { value: new THREE.Color("#d5f0f6") },
             uTopNight: { value: new THREE.Color("#070b16") },
             uHorNight: { value: new THREE.Color("#1a2748") },
           }}
@@ -341,6 +393,7 @@ function World({
       <ScatterMesh items={terrain.trees} geometry={treeGeo} material={treeMat} groundOffset />
       <ScatterMesh items={terrain.palms} geometry={treeGeo} material={palmMat} groundOffset />
       <Towns terrain={terrain} geometry={townGeo} material={townMat} />
+      <Clouds />
       <mesh position={[terrain.airport.x, terrain.airport.y, terrain.airport.z]} rotation={[0, terrain.airport.rot, 0]}>
         <boxGeometry args={[2400, 2.4, 70]} />
         <meshLambertMaterial color="#2c3338" flatShading />

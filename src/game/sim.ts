@@ -32,13 +32,13 @@ const YAW_RATE = 1.25;
 const CLEARANCE = 14;
 
 export function createSim(): Sim {
-  // Southwest of the island, high enough to read the whole coast and the near islets.
+  // Far enough southwest that the island sits in the lagoon, not a wall of facets.
   return {
-    x: -22_000,
-    y: 2_400,
-    z: 16_000,
-    yaw: Math.atan2(-0.81, 0.59),
-    pitch: -0.28,
+    x: -28_000,
+    y: 2_800,
+    z: 20_000,
+    yaw: Math.atan2(-0.93, 0.36),
+    pitch: -0.18,
     roll: 0,
     speed: 0,
   };

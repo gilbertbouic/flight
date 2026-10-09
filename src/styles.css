@@ -117,25 +117,29 @@
 
 .control-list {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.45rem 1rem;
+  grid-template-columns: auto 1fr auto 1fr;
+  column-gap: 0.85rem;
+  row-gap: 0.4rem;
   margin: 0;
   padding: 0;
   list-style: none;
+  align-items: baseline;
 }
 
 .control-list li {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.75rem;
+  display: contents;
+}
+
+.control-list span {
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: var(--color-muted);
 }
 
 .control-list kbd {
   color: var(--color-accent);
-  font-family: inherit;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
 }
 
 .swatches {
